@@ -1,5 +1,6 @@
 package io.github.etrayed.fileportable.execution;
 
+import io.github.etrayed.fileportable.FilePortable;
 import io.github.etrayed.fileportable.execution.impl.DownloadProcessImpl;
 
 import java.net.HttpURLConnection;
@@ -58,7 +59,9 @@ public class DownloadExecutor {
 
         @Override
         public void run() {
+            final int percentage = (int) ((downloadProcess.getGlobalReadValues() / maxContentLength) * 100);
 
+            FilePortable.getConsole().info("Download progress: " + percentage + "%");
         }
     }
 }

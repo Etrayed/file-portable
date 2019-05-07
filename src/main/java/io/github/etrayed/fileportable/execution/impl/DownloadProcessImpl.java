@@ -47,6 +47,9 @@ public class DownloadProcessImpl implements DownloadProcess {
             outputFile.createNewFile();
 
             FileUtils.copyFile(tempFile, outputFile);
+
+            httpURLConnection.disconnect();
+            scheduledFuture.cancel(true);
         }
     }
 
