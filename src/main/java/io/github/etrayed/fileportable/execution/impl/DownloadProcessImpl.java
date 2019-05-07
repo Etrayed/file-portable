@@ -1,8 +1,13 @@
 package io.github.etrayed.fileportable.execution.impl;
 
 import io.github.etrayed.fileportable.execution.DownloadProcess;
+import org.apache.commons.io.FileUtils;
 
-import java.net.URL;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -10,14 +15,42 @@ import java.util.concurrent.ScheduledFuture;
  */
 public class DownloadProcessImpl implements DownloadProcess {
 
-    private final URL url;
+    private static final byte[] COPY_BUFFER = new byte[1024];
 
-    public DownloadProcessImpl(final URL url) {
-        this.url = url;
+    private final HttpURLConnection httpURLConnection;
+
+    private long globalReadValues;
+
+    public DownloadProcessImpl(final HttpURLConnection httpURLConnection) {
+        this.httpURLConnection = httpURLConnection;
     }
 
     @Override
-    public void run(final ScheduledFuture scheduledFuture) {
+    public void run(final ScheduledFuture scheduledFuture) throws IOException {
+        final File tempFile = File.createTempFile("filePortable", ".tmp");
 
+        try (final FileOutputStream fileOutputStream = new FileOutputStream(tempFile);
+             final InputStream inputStream = httpURLConnection.getInputStream()) {
+
+            tempFile.deleteOnExit();
+
+            int readValue;
+
+            while ((readValue = inputStream.read(COPY_BUFFER)) != -1) {
+                fileOutputStream.write(readValue);
+
+                globalReadValues += readValue;
+            }
+
+            final File outputFile = new File(httpURLConnection.getURL().getFile());
+
+            outputFile.createNewFile();
+
+            FileUtils.copyFile(tempFile, outputFile);
+        }
+    }
+
+    public long getGlobalReadValues() {
+        return globalReadValues;
     }
 }

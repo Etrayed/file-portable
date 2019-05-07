@@ -2,6 +2,7 @@ package io.github.etrayed.fileportable.execution;
 
 import io.github.etrayed.fileportable.execution.impl.DownloadProcessImpl;
 
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -28,10 +29,15 @@ public class DownloadExecutor {
 
     public static void execute(final URL downloadUrl) {
         try {
-            final DownloadProcess downloadProcess = new DownloadProcessImpl(downloadUrl);
+            final HttpURLConnection httpURLConnection = (HttpURLConnection) downloadUrl.openConnection();
+
+            httpURLConnection.connect();
+
+            final DownloadProcess downloadProcess = new DownloadProcessImpl(httpURLConnection);
 
             final ScheduledFuture scheduledFuture = Executors.newSingleThreadScheduledExecutor()
-                    .scheduleAtFixedRate(new ProgressPrinter(downloadProcess), 3, 3, TimeUnit.SECONDS);
+                    .scheduleAtFixedRate(new ProgressPrinter(downloadProcess, httpURLConnection.getContentLengthLong()),
+                            3, 3, TimeUnit.SECONDS);
 
             downloadProcess.run(scheduledFuture);
         } catch (Throwable throwable) {
@@ -43,8 +49,11 @@ public class DownloadExecutor {
 
         private final DownloadProcessImpl downloadProcess;
 
-        private ProgressPrinter(final DownloadProcess downloadProcess) {
+        private final long maxContentLength;
+
+        private ProgressPrinter(final DownloadProcess downloadProcess, final long maxContentLength) {
             this.downloadProcess = (DownloadProcessImpl) downloadProcess;
+            this.maxContentLength = maxContentLength;
         }
 
         @Override
