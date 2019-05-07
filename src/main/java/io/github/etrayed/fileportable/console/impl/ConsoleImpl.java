@@ -44,6 +44,6 @@ public class ConsoleImpl implements Console {
     }
 
     static {
-        PREFIX_FORMAT = new SimpleDateFormat("[HH-mm-ss] ");
+        PREFIX_FORMAT = new SimpleDateFormat("[HH:mm:ss] ");
     }
 }

@@ -38,7 +38,7 @@ public class DownloadExecutor {
 
             final ScheduledFuture scheduledFuture = Executors.newSingleThreadScheduledExecutor()
                     .scheduleAtFixedRate(new ProgressPrinter(downloadProcess, httpURLConnection.getContentLengthLong()),
-                            3, 3, TimeUnit.SECONDS);
+                            500, 500, TimeUnit.MILLISECONDS);
 
             downloadProcess.run(scheduledFuture);
         } catch (Throwable throwable) {
@@ -52,6 +52,8 @@ public class DownloadExecutor {
 
         private final long maxContentLength;
 
+        private boolean endReached;
+
         private ProgressPrinter(final DownloadProcess downloadProcess, final long maxContentLength) {
             this.downloadProcess = (DownloadProcessImpl) downloadProcess;
             this.maxContentLength = maxContentLength;
@@ -59,9 +61,15 @@ public class DownloadExecutor {
 
         @Override
         public void run() {
-            final int percentage = (int) ((downloadProcess.getGlobalReadValues() / maxContentLength) * 100);
+            if(endReached)
+                return;
 
-            FilePortable.getConsole().info("Download progress: " + percentage + "%");
+            final int percentage = (int) (downloadProcess.getGlobalReadValues() / (maxContentLength / 100));
+
+            FilePortable.getConsole().info("Downloading... " + percentage + "%");
+
+            if(percentage == 100)
+                endReached = true;
         }
     }
 }

@@ -1,13 +1,15 @@
 package io.github.etrayed.fileportable.execution.impl;
 
+import io.github.etrayed.fileportable.FilePortable;
 import io.github.etrayed.fileportable.execution.DownloadProcess;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -29,6 +31,8 @@ public class DownloadProcessImpl implements DownloadProcess {
     public void run(final ScheduledFuture scheduledFuture) throws IOException {
         final File tempFile = File.createTempFile("filePortable", ".tmp");
 
+        FilePortable.getConsole().info("Content will be temporarily saved to \"" + tempFile.getCanonicalPath() + "\"");
+
         try (final FileOutputStream fileOutputStream = new FileOutputStream(tempFile);
              final InputStream inputStream = httpURLConnection.getInputStream()) {
 
@@ -37,19 +41,29 @@ public class DownloadProcessImpl implements DownloadProcess {
             int readValue;
 
             while ((readValue = inputStream.read(COPY_BUFFER)) != -1) {
-                fileOutputStream.write(readValue);
+                fileOutputStream.write(COPY_BUFFER, 0, readValue);
 
                 globalReadValues += readValue;
             }
 
-            final File outputFile = new File(httpURLConnection.getURL().getFile());
+            httpURLConnection.disconnect();
+            scheduledFuture.cancel(true);
+
+            FilePortable.getConsole().info("Download completed!");
+
+            final File outputFile = new File(System.console().readLine("Please enter a filename: "));
+
+            outputFile.mkdirs();
 
             outputFile.createNewFile();
 
-            FileUtils.copyFile(tempFile, outputFile);
+            Files.copy(tempFile.toPath(), outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-            httpURLConnection.disconnect();
-            scheduledFuture.cancel(true);
+            FilePortable.getConsole().info("Content saved to \"" + outputFile.getCanonicalPath() + "\"");
+
+            System.exit(0);
+        } catch (Throwable throwable) {
+            throw new IOException(throwable);
         }
     }
 
